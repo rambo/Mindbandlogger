@@ -6,12 +6,25 @@ Brain brain(Uart);
 
 void setup()
 {
+    // USB-Serial speed
     Serial.begin(115200);
+
+    // Set the UART speed for BlueSmirf
     Uart.begin(57600);
+
+    // Enable power to the BlueSmirf
     pinMode(13, OUTPUT);
-    // Give power to bluesmirf and enter command mode
     digitalWrite(13, HIGH);
+
+    // UART Speed for the OpenLog
     SWSerial.begin(38400); // This should be enough, we get data quite rarely
+
+    // Enable power to the OpenLog
+    pinMode(0, OUTPUT);
+    digitalWrite(0, HIGH);
+    delay(2000);
+    SWSerial.println("Booted");
+
     Serial.println("Booted");
 }
 
@@ -22,11 +35,11 @@ void loop()
 {
     if (brain.update())
     {
-        Serial.println(brain.readErrors());
-        Serial.println(brain.readCSV());
-        
+        const char* csv_data = brain.readCSV();
+        const char* csv_data2 = csv_data;
+        SWSerial.println(csv_data);
+        Serial.println(csv_data2);
     }
-    /*
     if (SWSerial.available())
     {
         swserial_incoming = Uart.read(); 
@@ -34,15 +47,5 @@ void loop()
         Serial.print(swserial_incoming, BYTE);
         Serial.print(" 0x");
         Serial.println(swserial_incoming, HEX);
-    }
-    */
-    if (Serial.available())
-    {
-        serial_incoming = Serial.read(); 
-        Uart.print(serial_incoming, BYTE);
-        /*
-        //SWSerial.write complains about being private
-        SWSerial.print(serial_incoming, BYTE);
-        */
     }
 }
