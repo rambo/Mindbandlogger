@@ -38,10 +38,14 @@ void setup()
     // UART Speed for the OpenLog
     SWSerial.begin(38400); // This should be enough, we get data quite rarely
 
-    // Enable power to the OpenLog
-    pinMode(0, OUTPUT);
-    digitalWrite(0, HIGH);
-    delay(2000);
+    // Reset OpenLog
+    pinMode(3, OUTPUT);
+    digitalWrite(3, HIGH); // Start high
+    digitalWrite(3, LOW); // pulling low will reset
+    delay(50);
+    digitalWrite(3, HIGH); // return high so we can reset later
+    delay(2000); // Wait for openlog to boot (alternative we could read the port until we see: "12<" 0x31 0x32 0x3C)
+
     DS1307.read_clock();
     SWSerial.print(DS1307.iso_ts()),
     SWSerial.print(" ");
@@ -58,20 +62,18 @@ void loop()
     {
         DS1307.read_clock();
         const char* csv_data = brain.readCSV();
-        //const char* csv_data2 = csv_data;
         const char* iso_ts = DS1307.iso_ts();
         SWSerial.print(iso_ts);
         SWSerial.print(",");
         SWSerial.println(csv_data);
         Serial.print(iso_ts);
         Serial.print(",");
-        //Serial.println(csv_data2);
         Serial.println(csv_data);
     }
     /*
     if (SWSerial.available())
     {
-        swserial_incoming = Uart.read(); 
+        swserial_incoming = SWSerial.read(); 
         Serial.print("Got from SWSerial ");
         Serial.print(swserial_incoming, BYTE);
         Serial.print(" 0x");
