@@ -8,6 +8,9 @@ Uses Teensy 2.0 in USB-serial mode, BlueSmirf Silver in master mode, OpenLog and
 
 Clone this repo to your arduino sketch folder, then clone the following repos to libraries folder:
 
-  * git://github.com/rambo/I2C.git
-  * git://github.com/rambo/i2c_device.git
-  * git://github.com/rambo/ds1307.git
+  * <git://github.com/rambo/I2C.git>
+  * <git://github.com/rambo/i2c_device.git>
+  * <git://github.com/rambo/ds1307.git>
+
+Clone <git://github.com/rambo/Arduino-Brain-Library.git> to you arduino sketches library and symlink the "Brain" subdirectory
+to your arduino libraries.
