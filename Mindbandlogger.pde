@@ -182,22 +182,23 @@ void setup()
     delay(2000); // Wait for openlog to boot (alternative we could read the port until we see: "12<" 0x31 0x32 0x3C)
 
     DS1307.read_clock();
-    /*
+    /**
+     * Don't bother logging boot messages to SD
+     *
     SWSerial.print(DS1307.iso_ts()),
     SWSerial.print(" ");
     SWSerial.println("Booted");
     */
-
-    
-
     Serial.println("Booted");
 }
 
 byte uart_incoming;
 byte serial_incoming;
 byte swserial_incoming;
+byte loop_i;
 void loop()
 {
+    ++loop_i;
     read_command();
     /*
     if (SWSerial.available())
@@ -216,6 +217,8 @@ void loop()
     // Pause logging if signalquality is above threshold (higher is worse)
     if (brain.signalQuality > BRAIN_QUALITY_TH)
     {
+        // Reset the counter
+        loop_i = 0;
         return;
     }
     // Packet with the calculated power bands, these we get about once a second
@@ -253,6 +256,11 @@ void loop()
         }
     }
     // Raw value packet, we don't bother writing the timestamp to these as we get them *fast* (at about 500Hz)
+    // Slow down! it seems OpenLog is losing data (especially the ones with the calculated power bands), so log only every 5th raw value
+    if ((loop_i % 5) != 0)
+    {
+        return;
+    }
     if (bitRead(brain_packets, 4))
     {
         switch (log_mode)
