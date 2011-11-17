@@ -8,6 +8,12 @@ class eeg_data(object):
     timestamp  = None
     raw        = None
 
+    def __dict__(self):
+        return dict((name, getattr(self, name)) for name in dir(self) if not name.startswith('__')) 
+
+    def __repr__(self):
+        return "<%s with values %s>" % (type(self), self.__dict__())
+
 class eeg_data_extended(eeg_data):
     quality    = None
     meditation = None
