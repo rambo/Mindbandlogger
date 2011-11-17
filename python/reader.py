@@ -102,14 +102,20 @@ class read_normalizer:
     def __iter__(self):
         return self
 
+class rawiterator(read_normalizer):
+    def next(self):
+        item = read_normalizer.next(self)
+        return (item.timestamp, item.raw)
+
 if __name__ == '__main__':
     print sys.argv
     if (len(sys.argv) > 1):
         fp = open(sys.argv[1], 'rb')
-    reader = read_normalizer(fp)
+        reader = read_normalizer(fp)
+        #reader = rawiterator(fp)
+        
+        i = 0
+        for row in reader:
+            i = i+1
+            print "#%d: %s" % (i, row)
     
-    i = 0
-    for row in reader:
-        i = i+1
-        print "#%d: %s" % (i, row)
-
