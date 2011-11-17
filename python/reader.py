@@ -102,8 +102,6 @@ class read_normalizer:
     def __iter__(self):
         return self
 
-
-
 if __name__ == '__main__':
     print sys.argv
     if (len(sys.argv) > 1):
