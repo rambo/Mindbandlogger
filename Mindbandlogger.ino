@@ -205,7 +205,7 @@ void loop()
     {
         swserial_incoming = SWSerial.read(); 
         Serial.print("Got from SWSerial ");
-        Serial.print(swserial_incoming, BYTE);
+        Serial.write(swserial_incoming);
         Serial.print(" 0x");
         Serial.println(swserial_incoming, HEX);
     }
