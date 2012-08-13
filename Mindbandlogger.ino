@@ -58,19 +58,19 @@ void set_rtc()
     tmp[1] = incoming_command[18];
     byte second = atoi(tmp);
 
-    Serial.print("Parsed command '");
+    Serial.print(F("Parsed command '"));
     Serial.print(incoming_command);
-    Serial.print("' to: ");
+    Serial.print(F("' to: "));
     Serial.print(year, DEC);
-    Serial.print("-");
+    Serial.print(F("-"));
     Serial.print(month, DEC);
-    Serial.print("-");
+    Serial.print(F("-"));
     Serial.print(day, DEC);
-    Serial.print(" ");
+    Serial.print(F(" "));
     Serial.print(hour, DEC);
-    Serial.print(":");
+    Serial.print(F(":"));
     Serial.print(minute, DEC);
-    Serial.print(":");
+    Serial.print(F(":"));
     Serial.println(second, DEC);
     
     DS1307.set_clock(year, month, day, hour, minute, second);
@@ -89,11 +89,11 @@ inline void process_command()
             print_debug_mode = (print_debug_mode & B00000001) ^ 0x1;
             if (print_debug_mode == 0x1)
             {
-                Serial.println("CSV Debug output ON");
+                Serial.println(F("CSV Debug output ON"));
             }
             else
             {
-                Serial.println("CSV Debug output OFF");
+                Serial.println(F("CSV Debug output OFF"));
             }
             break;
         }
@@ -104,11 +104,11 @@ inline void process_command()
             print_debug_mode = (print_debug_mode & B00000010) ^ 0x2;
             if (print_debug_mode == 0x2)
             {
-                Serial.println("Binary pass-through ON");
+                Serial.println(F("Binary pass-through ON"));
             }
             else
             {
-                Serial.println("Binary pass-through OFF");
+                Serial.println(F("Binary pass-through OFF"));
             }
             break;
         }
@@ -144,9 +144,9 @@ inline void read_command()
         // Sanity check buffer sizes
         if (incoming_position > COMMAND_STRING_SIZE+2)
         {
-            Serial.print("PANIC: No end-of-line seen and incoming_position=");
+            Serial.print(F("PANIC: No end-of-line seen and incoming_position="));
             Serial.print(incoming_position, DEC);
-            Serial.println(" clearing buffers");
+            Serial.println(F(" clearing buffers"));
             
             memset(&incoming_command, 0, COMMAND_STRING_SIZE+2);
             incoming_position = 0;
@@ -186,10 +186,10 @@ void setup()
      * Don't bother logging boot messages to SD
      *
     SWSerial.print(DS1307.iso_ts()),
-    SWSerial.print(" ");
-    SWSerial.println("Booted");
+    SWSerial.print(F(" "));
+    SWSerial.println(F("Booted"));
     */
-    Serial.println("Booted");
+    Serial.println(F("Booted"));
 }
 
 byte uart_incoming;
@@ -204,9 +204,9 @@ void loop()
     if (SWSerial.available())
     {
         swserial_incoming = SWSerial.read(); 
-        Serial.print("Got from SWSerial ");
+        Serial.print(F("Got from SWSerial "));
         Serial.write(swserial_incoming);
-        Serial.print(" 0x");
+        Serial.print(F(" 0x"));
         Serial.println(swserial_incoming, HEX);
     }
     */
@@ -235,9 +235,9 @@ void loop()
             case 0x1:
             {
                 SWSerial.print(iso_ts);
-                SWSerial.print(",");
+                SWSerial.print(F(","));
                 SWSerial.print(brain.rawValue, DEC);
-                SWSerial.print(",");
+                SWSerial.print(F(","));
                 SWSerial.println(csv_data);
                 break;
             }
@@ -247,9 +247,9 @@ void loop()
             case 0x1:
             {
                 Serial.print(iso_ts);
-                Serial.print(",");
+                Serial.print(F(","));
                 Serial.print(brain.rawValue, DEC);
-                Serial.print(",");
+                Serial.print(F(","));
                 Serial.println(csv_data);
                 break;
             }
@@ -267,7 +267,7 @@ void loop()
         {
             case 0x1:
             {
-                SWSerial.print(",");
+                SWSerial.print(F(","));
                 SWSerial.println(brain.rawValue, DEC);
                 break;
             }
@@ -276,7 +276,7 @@ void loop()
         {
             case 0x1:
             {
-                Serial.print(",");
+                Serial.print(F(","));
                 Serial.println(brain.rawValue, DEC);
                 break;
             }
