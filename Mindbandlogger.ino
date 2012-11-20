@@ -25,6 +25,7 @@ const int chipSelect = 4;
 
 
 #define BRAIN_QUALITY_TH 150
+#define BRAIN_RAW_FLUSH_INTEVAL 10
 
 byte print_debug_mode = 0x0;
 //byte print_debug_mode = 0x1;
@@ -200,6 +201,7 @@ void setup()
     {
         Serial.println(F("card initialized."));
     }
+    // TODO: Use datetime based filename
     dataFile = SD.open("datalog.txt", FILE_WRITE);
     if (!dataFile)
     {
@@ -269,6 +271,7 @@ void loop()
                     dataFile.print(brain.rawValue, DEC);
                     dataFile.print(F(","));
                     dataFile.println(csv_data);
+                    dataFile.flush();
                 }
                 break;
             }
@@ -297,6 +300,10 @@ void loop()
                 {
                     dataFile.print(F(","));
                     dataFile.println(brain.rawValue, DEC);
+                    if ((loop_i % BRAIN_RAW_FLUSH_INTEVAL) == 0)
+                    {
+                        dataFile.flush();
+                    }
                 }
                 break;
             }
