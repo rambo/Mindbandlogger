@@ -1,24 +1,28 @@
 /**
- * NOTE: this code is for Teensy 2.0 in USB-serial mode
+ * NOTE: this code is for Teensy 3 in USB-serial mode
  *
  * The UART is used to talk with the NeuroSky chip
- * SWSerial used to log data to SD card
  * USB serial used for debugging
  *
  */
-// Get this from https://github.com/rambo/I2C
-#include <I2C.h> // For some weird reason including this in the relevant .h file does not work
-#define I2C_DEVICE_DEBUG
-// Get this from https://github.com/rambo/i2c_device
-#include <i2c_device.h> // For some weird reason including this in the relevant .h file does not work
-#include <ds1307.h>
+#include <SD.h>
+#include <Time.h>  
+
+
 // Get this from https://github.com/rambo/Arduino-Brain-Library
 #include <Brain.h>
-// Get this from http://www.pjrc.com/teensy/td_libs_NewSoftSerial.html
-#include <NewSoftSerial.h>
-NewSoftSerial SWSerial(1, 2);
 HardwareSerial Uart = HardwareSerial();
 Brain brain(Uart);
+
+
+// change this to match your SD shield or module;
+// Arduino Ethernet shield: pin 4
+// Adafruit SD shields and modules: pin 10
+// Sparkfun SD shield: pin 8
+// Teensy 2.0: pin 0
+// Teensy++ 2.0: pin 20
+const int chipSelect = 4;
+
 
 #define BRAIN_QUALITY_TH 150
 
@@ -31,49 +35,66 @@ byte log_mode = 0x1;
 char incoming_command[COMMAND_STRING_SIZE+2]; // Allocate for CRLF too
 byte incoming_position;
 
+
+char isobuffer[20];
+char* get_iso_ts()
+{
+    time_t t = now();
+    sprintf(isobuffer,"%04u-%02u-%02u %02u:%02u:%02u",
+        (int)year(t),
+        (int)month(t),
+        (int)day(t),
+        (int)hour(t),
+        (int)minute(t),
+        (int)second(t)
+    );
+
+    return isobuffer;
+}
+
 void set_rtc()
 {
     char tmp[3]; // Temp buffer for atoi
     tmp[0] = incoming_command[2]; // Ignore the century part of 4-digit year
     tmp[1] = incoming_command[3];
-    byte year = atoi(tmp);
+    byte t_year = atoi(tmp);
 
     tmp[0] = incoming_command[5]; 
     tmp[1] = incoming_command[6];
-    byte month = atoi(tmp);
+    byte t_month = atoi(tmp);
     
     tmp[0] = incoming_command[8]; 
     tmp[1] = incoming_command[9];
-    byte day = atoi(tmp);
+    byte t_day = atoi(tmp);
 
     tmp[0] = incoming_command[11]; 
     tmp[1] = incoming_command[12];
-    byte hour = atoi(tmp);
+    byte t_hour = atoi(tmp);
 
     tmp[0] = incoming_command[14]; 
     tmp[1] = incoming_command[15];
-    byte minute = atoi(tmp);
+    byte t_minute = atoi(tmp);
 
     tmp[0] = incoming_command[17]; 
     tmp[1] = incoming_command[18];
-    byte second = atoi(tmp);
+    byte t_second = atoi(tmp);
 
     Serial.print(F("Parsed command '"));
     Serial.print(incoming_command);
     Serial.print(F("' to: "));
-    Serial.print(year, DEC);
+    Serial.print(t_year, DEC);
     Serial.print(F("-"));
-    Serial.print(month, DEC);
+    Serial.print(t_month, DEC);
     Serial.print(F("-"));
-    Serial.print(day, DEC);
+    Serial.print(t_day, DEC);
     Serial.print(F(" "));
-    Serial.print(hour, DEC);
+    Serial.print(t_hour, DEC);
     Serial.print(F(":"));
-    Serial.print(minute, DEC);
+    Serial.print(t_minute, DEC);
     Serial.print(F(":"));
-    Serial.println(second, DEC);
+    Serial.println(t_second, DEC);
     
-    DS1307.set_clock(year, month, day, hour, minute, second);
+    setTime(t_hour,t_minute,t_second,t_day,t_month,t_year);
 }
 
 inline void process_command()
@@ -155,40 +176,47 @@ inline void read_command()
 }
 
 
+File dataFile;
 void setup()
 {
-    // Initialize RTC
-    DS1307.begin(true);
-
     // USB-Serial speed
     Serial.begin(115200);
 
     // Set the UART speed for BlueSmirf/TGAM
     Uart.begin(57600);
 
-    // Enable power to the BlueSmirf
-    pinMode(13, OUTPUT);
-    digitalWrite(13, HIGH);
+    Serial.print(F("Initializing SD card..."));
+    // make sure that the default chip select pin is set to
+    // output, even if you don't use it:
+    // TODO: Check if needed on teensy 3
+    pinMode(10, OUTPUT);
+  
+    // see if the card is present and can be initialized:
+    if (!SD.begin(chipSelect))
+    {
+        Serial.println(F("Card failed, or not present"));
+    }
+    else
+    {
+        Serial.println(F("card initialized."));
+    }
+    dataFile = SD.open("datalog.txt", FILE_WRITE);
+    if (!dataFile)
+    {
+        Serial.println(F("Failed to open logfile"));
+    }
 
-    // UART Speed for the OpenLog
-    SWSerial.begin(38400); // This should be enough, we get data quite rarely
+    // set the Time library to use Teensy 3.0's RTC to keep time
+    setSyncProvider(Teensy3Clock.get);
+    if(timeStatus() != timeSet)
+    {
+        Serial.println(F("Unable to sync with the RTC"));
+    }
+    else
+    {
+        Serial.println(F("RTC has set the system time"));
+    }
 
-    // Reset OpenLog
-    pinMode(3, OUTPUT);
-    digitalWrite(3, HIGH); // Start high
-    digitalWrite(3, LOW); // pulling low will reset
-    delay(50);
-    digitalWrite(3, HIGH); // return high so we can reset later
-    delay(2000); // Wait for openlog to boot (alternative we could read the port until we see: "12<" 0x31 0x32 0x3C)
-
-    DS1307.read_clock();
-    /**
-     * Don't bother logging boot messages to SD
-     *
-    SWSerial.print(DS1307.iso_ts()),
-    SWSerial.print(F(" "));
-    SWSerial.println(F("Booted"));
-    */
     Serial.println(F("Booted"));
 }
 
@@ -225,20 +253,23 @@ void loop()
     if (bitRead(brain_packets, 3))
     {
         // Update RTC
-        DS1307.read_clock();
+        //DS1307.read_clock();
         // Put the brain and RTC data to strings
         const char* csv_data = brain.readCSV();
-        const char* iso_ts = DS1307.iso_ts();
+        const char* iso_ts = get_iso_ts();
         // And dump it according to modes
         switch (log_mode)
         {
             case 0x1:
             {
-                SWSerial.print(iso_ts);
-                SWSerial.print(F(","));
-                SWSerial.print(brain.rawValue, DEC);
-                SWSerial.print(F(","));
-                SWSerial.println(csv_data);
+                if (dataFile)
+                {
+                    dataFile.print(iso_ts);
+                    dataFile.print(F(","));
+                    dataFile.print(brain.rawValue, DEC);
+                    dataFile.print(F(","));
+                    dataFile.println(csv_data);
+                }
                 break;
             }
         }
@@ -256,19 +287,17 @@ void loop()
         }
     }
     // Raw value packet, we don't bother writing the timestamp to these as we get them *fast* (at about 500Hz)
-    // Slow down! it seems OpenLog is losing data (especially the ones with the calculated power bands), so log only every 5th raw value
-    if ((loop_i % 5) != 0)
-    {
-        return;
-    }
     if (bitRead(brain_packets, 4))
     {
         switch (log_mode)
         {
             case 0x1:
             {
-                SWSerial.print(F(","));
-                SWSerial.println(brain.rawValue, DEC);
+                if (dataFile)
+                {
+                    dataFile.print(F(","));
+                    dataFile.println(brain.rawValue, DEC);
+                }
                 break;
             }
         }
